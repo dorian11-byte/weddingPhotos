@@ -56,25 +56,25 @@ export default function Home() {
   };
 
   // Función que convierte un archivo a base64 (sin el prefijo)
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64String = result.split(",")[1];
-        resolve(base64String);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
+  // const fileToBase64 = (file: File): Promise<string> => {
+  //   return new Promise((resolve, reject) => {
+  //     const reader = new FileReader();
+  //     reader.readAsDataURL(file);
+  //     reader.onload = () => {
+  //       const result = reader.result as string;
+  //       const base64String = result.split(",")[1];
+  //       resolve(base64String);
+  //     };
+  //     reader.onerror = error => reject(error);
+  //   });
+  // };
 
   // Envía las fotos al endpoint API y redirige a la página de "Gracias"
   const handleSendPhotos = async () => {
     if (selectedFiles.length === 0 || error) return;
     setLoading(true);
     try {
-      
+
       const formData = new FormData();
       selectedFiles.forEach(file => {
         formData.append("files", file);

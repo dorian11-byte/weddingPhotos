@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { google } from "googleapis";
 import { PassThrough } from "stream";
+import type { OAuth2Client } from "google-auth-library";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/drive",
@@ -18,14 +19,12 @@ function bufferToStream(buffer: Buffer) {
 }
 
 async function uploadFile(
-  authClient: any,
+  authClient: OAuth2Client,
   fileBuffer: Buffer,
   filename: string,
   mimeType: string
 ) {
   const drive = google.drive({ version: "v3", auth: authClient });
-  // Use the create method as specified in the documentation:
-  // https://developers.google.com/drive/api/reference/rest/v3/files/create
   const response = await drive.files.create({
     requestBody: {
       name: filename,
@@ -41,15 +40,12 @@ async function uploadFile(
 
 export async function POST(req: NextRequest) {
   try {
-    // Parse the incoming FormData instead of JSON
     const formData = await req.formData();
-    // Get all files from the "files" field
     const files = formData.getAll("files");
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "No se enviaron archivos." }, { status: 400 });
     }
 
-    // Authenticate with Google using your Service Account credentials
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -57,15 +53,14 @@ export async function POST(req: NextRequest) {
       },
       scopes: SCOPES,
     });
-    const authClient = await auth.getClient();
+    // Cast the result to OAuth2Client to satisfy TypeScript.
+    const authClient = (await auth.getClient()) as OAuth2Client;
     const results = [];
 
-    // Process each file
     for (const file of files) {
       const f = file as File;
       const arrayBuffer = await f.arrayBuffer();
       const fileBuffer = Buffer.from(arrayBuffer);
-      // Determine mimeType based on file extension
       let mimeType = f.type || "image/jpeg";
       const lowerName = f.name.toLowerCase();
       if (lowerName.endsWith(".png")) mimeType = "image/png";
@@ -78,16 +73,13 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, data: results });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error uploading files:", error);
-    return NextResponse.json(
-      { error: error.message || "Error uploading files" },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
-// Return 405 for non-POST methods
 export function GET() {
   return NextResponse.json({ error: "Method GET Not Allowed" }, { status: 405 });
 }
