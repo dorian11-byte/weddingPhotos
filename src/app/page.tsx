@@ -11,6 +11,7 @@ export default function Home() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   // Abre el diálogo y resetea estados
   const handleOpenDialog = () => {
@@ -19,6 +20,7 @@ export default function Home() {
     setSelectedFiles([]);
     setPreviews([]);
     setError("");
+    setUploadError("");
     setLoading(false);
   };
 
@@ -29,6 +31,7 @@ export default function Home() {
     setSelectedFiles([]);
     setPreviews([]);
     setError("");
+    setUploadError("");
     setLoading(false);
   };
 
@@ -73,6 +76,7 @@ export default function Home() {
   const handleSendPhotos = async () => {
     if (selectedFiles.length === 0 || error) return;
     setLoading(true);
+    setUploadError("");
     try {
 
       const formData = new FormData();
@@ -88,11 +92,13 @@ export default function Home() {
       if (response.ok) {
         router.push("/gracias");
       } else {
-        console.error("Error uploading files");
+        const data = await response.json();
+        setUploadError(data.error || "Error al subir las fotos");
         setLoading(false);
       }
     } catch (err) {
-      console.error("Error converting files:", err);
+      console.error("Error uploading files:", err);
+      setUploadError("Error al subir las fotos, por favor inténtalo de nuevo.");
       setLoading(false);
     }
   };
@@ -206,6 +212,7 @@ export default function Home() {
               {/* Si ya hay fotos seleccionadas pero menos de 10, mostramos "Agregar más fotos" al final */}
               
               {error && <p className="text-red-500 mb-4">{error}</p>}
+              {uploadError && <p className="text-red-500 mb-4">{uploadError}</p>}
               
               {/* Vista previa responsive en cuadrícula con opción de eliminar cada foto */}
               {previews.length > 0 && (
@@ -239,7 +246,9 @@ export default function Home() {
                   Agregar más fotos
                 </label>
               )}
+            
               
+              {/* Loader y mensaje */}
               {/* Loader mientras se envían las fotos */}
               {loading && (
                 <div className="flex flex-col items-center justify-center mb-4">

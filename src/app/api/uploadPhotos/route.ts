@@ -40,6 +40,7 @@ async function uploadFile(
 
 export async function POST(req: NextRequest) {
   try {
+    // Parse the incoming FormData instead of JSON
     const formData = await req.formData();
     const files = formData.getAll("files");
     if (!files || files.length === 0) {
@@ -53,11 +54,10 @@ export async function POST(req: NextRequest) {
       },
       scopes: SCOPES,
     });
-    // Cast the result to OAuth2Client to satisfy TypeScript.
     const authClient = (await auth.getClient()) as OAuth2Client;
-    const results = [];
 
-    for (const file of files) {
+    // Upload all files in parallel
+    const uploadPromises = files.map(async (file) => {
       const f = file as File;
       const arrayBuffer = await f.arrayBuffer();
       const fileBuffer = Buffer.from(arrayBuffer);
@@ -68,9 +68,11 @@ export async function POST(req: NextRequest) {
         mimeType = "image/jpeg";
       else if (lowerName.endsWith(".webp")) mimeType = "image/webp";
 
-      const result = await uploadFile(authClient, fileBuffer, f.name, mimeType);
-      results.push(result);
-    }
+      return uploadFile(authClient, fileBuffer, f.name, mimeType);
+    });
+
+    // Wait for all uploads to complete
+    const results = await Promise.all(uploadPromises);
 
     return NextResponse.json({ success: true, data: results });
   } catch (error: unknown) {
