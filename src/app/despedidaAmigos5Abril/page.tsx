@@ -3,6 +3,7 @@
 import Head from "next/head";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import imageCompression from "browser-image-compression"; // Import the compression library
 
 export default function Home() {
   const router = useRouter();
@@ -11,88 +12,94 @@ export default function Home() {
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
-  // Abre el diálogo y resetea estados
+  // Opens the dialog and resets states
   const handleOpenDialog = () => {
     console.log("handleOpenDialog");
     setIsDialogOpen(true);
     setSelectedFiles([]);
     setPreviews([]);
     setError("");
+    setUploadError("");
     setLoading(false);
   };
 
-  // Cierra el diálogo y revoca las URLs creadas para los previews
+  // Closes the dialog and revokes preview URLs
   const handleCloseDialog = () => {
     previews.forEach(url => URL.revokeObjectURL(url));
     setIsDialogOpen(false);
     setSelectedFiles([]);
     setPreviews([]);
     setError("");
+    setUploadError("");
     setLoading(false);
   };
 
-  // Maneja el cambio de archivos y agrega nuevos archivos a los ya seleccionados
-  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handles file changes, compresses new images, and adds them
+  const handleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      if (selectedFiles.length + newFiles.length > 10) {
-        setError("Solo puedes subir hasta 10 fotos.");
+      // Limit the total number of images to 5
+      if (selectedFiles.length + newFiles.length > 5) {
+        setError("Solo puedes subir hasta 5 fotos.");
         return;
       }
       setError("");
-      setSelectedFiles(prev => [...prev, ...newFiles]);
-      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-      setPreviews(prev => [...prev, ...newPreviews]);
-      e.target.value = "";
+      // Set compression options (adjust as needed)
+      const options = {
+        maxSizeMB: 0.5, // Target maximum size (0.5 MB)
+        maxWidthOrHeight: 1920, // Maximum width or height
+        useWebWorker: true,
+      };
+
+      try {
+        // Compress new files in parallel
+        const compressedFiles = await Promise.all(
+          newFiles.map(async file => await imageCompression(file, options))
+        );
+        setSelectedFiles(prev => [...prev, ...compressedFiles]);
+        const newPreviews = compressedFiles.map(file => URL.createObjectURL(file));
+        setPreviews(prev => [...prev, ...newPreviews]);
+        e.target.value = "";
+      } catch (err) {
+        console.error("Error compressing images:", err);
+        setError("Error al comprimir las imágenes. Intenta de nuevo.");
+      }
     }
   };
 
-  // Permite eliminar una foto según su índice
+  // Allows removal of a photo by index
   const handleRemovePhoto = (index: number) => {
     URL.revokeObjectURL(previews[index]);
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Función que convierte un archivo a base64 (sin el prefijo)
-  // const fileToBase64 = (file: File): Promise<string> => {
-  //   return new Promise((resolve, reject) => {
-  //     const reader = new FileReader();
-  //     reader.readAsDataURL(file);
-  //     reader.onload = () => {
-  //       const result = reader.result as string;
-  //       const base64String = result.split(",")[1];
-  //       resolve(base64String);
-  //     };
-  //     reader.onerror = error => reject(error);
-  //   });
-  // };
-
-  // Envía las fotos al endpoint API y redirige a la página de "Gracias"
+  // Sends photos to the API endpoint using FormData and navigates to the "Gracias" page
   const handleSendPhotos = async () => {
     if (selectedFiles.length === 0 || error) return;
     setLoading(true);
+    setUploadError("");
     try {
-
       const formData = new FormData();
       selectedFiles.forEach(file => {
         formData.append("files", file);
       });
-
       const response = await fetch("/api/uploadPhotos", {
         method: "POST",
         body: formData
       });
-
       if (response.ok) {
         router.push("/gracias");
       } else {
-        console.error("Error uploading files");
+        const data = await response.json();
+        setUploadError(data.error || "Error al subir las fotos");
         setLoading(false);
       }
     } catch (err) {
-      console.error("Error converting files:", err);
+      console.error("Error uploading files:", err);
+      setUploadError("Error al subir las fotos, por favor inténtalo de nuevo.");
       setLoading(false);
     }
   };
@@ -106,16 +113,16 @@ export default function Home() {
         {/* Import Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Lobster:wght@400..700&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Pacifico&display=swap" 
-              rel="stylesheet"
+        <link
+          href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Lobster:wght@400..700&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Pacifico&display=swap"
+          rel="stylesheet"
         />
-
       </Head>
 
       <main className="min-h-screen bg-white flex flex-col items-center">
-        {/* Contenedor principal */}
+        {/* Main container */}
         <section className="w-full max-w-md relative">
-          {/* Imagen con texto encima */}
+          {/* Background image with text overlay */}
           <div className="w-full h-auto relative">
             <img
               src="/img2.jpeg"
@@ -145,7 +152,7 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Información y botón: Se le asigna z-index para que esté encima */}
+          {/* Information and button (with higher z-index) */}
           <div className="text-center py-6 px-4 mt-2 relative z-10">
             <p
               className="text-2xl mt-2 text-black"
@@ -163,14 +170,14 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Modal para seleccionar fotos */}
+        {/* Modal for selecting photos */}
         {isDialogOpen && (
           <div className="fixed inset-0 flex items-center justify-center bg-red-100 bg-opacity-50 z-50 p-4">
             <div className="rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto bg-white shadow-xl">
               <div className="w-full h-auto relative border-gray-300 rounded-md mb-4">
                 <img
                   src="/camera1.png"
-                  alt="Wedding photo"
+                  alt="Camera"
                   className="w-full h-auto object-cover rounded-md"
                 />
               </div>
@@ -179,10 +186,10 @@ export default function Home() {
                 className="text-2xl font-bold mb-4 text-black"
                 style={{ fontFamily: "Lobster, sans-serif" }}
               >
-                Selecciona hasta 10 fotos
+                Selecciona hasta 5 fotos
               </h2>
           
-              {/* Input de archivos oculto */}
+              {/* Hidden file input */}
               <input
                 type="file"
                 id="fileInput"
@@ -192,7 +199,7 @@ export default function Home() {
                 className="hidden"
                 disabled={loading}
               />
-              {/* Si no hay fotos seleccionadas, mostramos "Seleccionar Fotos" */}
+              {/* If no files are selected, show "Seleccionar Fotos" */}
               {selectedFiles.length === 0 && (
                 <label
                   htmlFor="fileInput"
@@ -203,11 +210,20 @@ export default function Home() {
                   Seleccionar Fotos
                 </label>
               )}
-              {/* Si ya hay fotos seleccionadas pero menos de 10, mostramos "Agregar más fotos" al final */}
-              
+              {/* If files exist but less than 5, show "Agregar más fotos" at the bottom */}
+              {selectedFiles.length > 0 && selectedFiles.length < 5 && (
+                <label
+                  htmlFor="fileInput"
+                  className={`cursor-pointer inline-block py-2 px-4 bg-blue-500 hover:bg-blue-600 text-black font-semibold rounded-full transition duration-300 mb-4 ${
+                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  Agregar más fotos
+                </label>
+              )}
               {error && <p className="text-red-500 mb-4">{error}</p>}
               
-              {/* Vista previa responsive en cuadrícula con opción de eliminar cada foto */}
+              {/* Responsive preview grid with option to delete each photo */}
               {previews.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 mb-4">
                   {previews.map((src, index) => (
@@ -228,19 +244,7 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Si hay fotos seleccionadas y menos de 10, mostramos el botón para agregar más al final */}
-              {selectedFiles.length > 0 && selectedFiles.length < 10 && (
-                <label
-                  htmlFor="fileInput"
-                  className={`cursor-pointer inline-block py-2 px-4 bg-blue-500 hover:bg-blue-600 text-black font-semibold rounded-md transition duration-300 mb-4 ${
-                    loading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  Agregar más fotos
-                </label>
-              )}
-              
-              {/* Loader mientras se envían las fotos */}
+              {/* Loader and message */}
               {loading && (
                 <div className="flex flex-col items-center justify-center mb-4">
                   <svg
@@ -269,7 +273,7 @@ export default function Home() {
                 </div>
               )}
               
-              {/* Botones centrados con bordes más redondos */}
+              {/* Centered buttons with rounded borders */}
               <div className="flex justify-center space-x-4 mt-20">
                 <button
                   onClick={handleCloseDialog}

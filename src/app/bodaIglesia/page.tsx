@@ -48,7 +48,7 @@ export default function Home() {
       setError("");
       // Set compression options (adjust as needed)
       const options = {
-        maxSizeMB: 0.3, // Target maximum size (0.3 MB)
+        maxSizeMB: 0.5, // Target maximum size (0.5 MB)
         maxWidthOrHeight: 1920, // Maximum width or height
         useWebWorker: true,
       };
@@ -140,7 +140,7 @@ export default function Home() {
                 className="text-4xl mt-0 text-white rounded-md p-1 text-bold"
                 style={{ fontFamily: "Dancing Script, cursive" }}
               >
-                5 de Junio - Despedida de amigos.
+                7 de Junio - Boda Iglesia
               </p>
             </div>
             <div className="absolute top-0 left-0 right-0 w-full h-90 flex flex-col items-center justify-center bg-opacity-50 text-white text-center p-0">
