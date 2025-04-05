@@ -222,6 +222,7 @@ export default function Home() {
                 </label>
               )}
               {error && <p className="text-red-500 mb-4">{error}</p>}
+              {uploadError && <p className="text-red-500 mb-4">{uploadError}</p>}
               
               {/* Responsive preview grid with option to delete each photo */}
               {previews.length > 0 && (
