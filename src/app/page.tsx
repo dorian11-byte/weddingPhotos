@@ -139,7 +139,7 @@ export default function Home() {
                 className="text-4xl mt-0 text-white rounded-md p-1 text-bold"
                 style={{ fontFamily: "Dancing Script, cursive" }}
               >
-                7 de Junio - Boda Iglesia
+                
               </p>
             </div>
             <div className="absolute top-0 left-0 right-0 w-full h-90 flex flex-col items-center justify-center bg-opacity-50 text-white text-center p-0">
@@ -185,7 +185,7 @@ export default function Home() {
                 className="text-2xl font-bold mb-4 text-black"
                 style={{ fontFamily: "Lobster, sans-serif" }}
               >
-                Selecciona hasta 10 fotos
+                Selecciona hasta 5 fotos
               </h2>
           
               {/* Input de archivos oculto */}

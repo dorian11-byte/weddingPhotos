@@ -44,9 +44,18 @@ export default function Gracias() {
             Tu aporte hará que este día sea aún más especial.
           </p>
 
+          {/* add a button that direct you to the folder of the photos uploaded */}
+
+          <button
+            onClick={() => window.open('https://drive.google.com/drive/u/0/folders/1jjX8MoFBgpHlSMoT7PQyg5ky7MZNr9jR', "_blank")}
+            className="w-full py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-md transition duration-300 mt-4"
+          >
+            Ver fotos
+          </button>
+
           <button
             onClick={handleReturn}
-            className="w-full py-2 bg-pink-500 hover:bg-blue-600 text-white font-semibold rounded-md transition duration-300 mt-4"
+            className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-md transition duration-300 mt-4"
           >
             Regresar a la página anterior
           </button>
