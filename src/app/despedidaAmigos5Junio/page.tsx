@@ -186,7 +186,7 @@ export default function Home() {
                 className="text-2xl font-bold mb-4 text-black"
                 style={{ fontFamily: "Lobster, sans-serif" }}
               >
-                Selecciona hasta 5 fotos
+                Selecciona hasta 5 fotos (NO VIDEOS!)
               </h2>
           
               {/* Hidden file input */}
